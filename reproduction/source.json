@@ -1,0 +1,183 @@
+{
+  "construction": {
+    "access_recipe": "GET https://data.transportation.gov/api/views/byy5-w977.json first to read the published column field names. Then GET https://data.transportation.gov/resource/byy5-w977.csv with a select list of only the needed columns: the declared features, the hazmat release count label source, accident year, accident month and day, the gxid grade-crossing identifier, the accident type, and identifier, date, reporting railroad code, state, station and milepost candidates. Use a where clause keeping rows whose hazmat car count is not zero and an explicit limit large enough for the roughly 27,000 pre-exclusion eligible accidents. Read the returned CSV in chunks, cast hazmatcars and hazmatreleasedcars from text to numbers, keep accidents with a hazmat car count of at least one and an accident year between 1975 and 2026, then exclude every row whose gxid is non-empty or whose accidenttype normalizes to Hwy-rail crossing or RR grade crossing. Only after that exclusion set the label to 1 when the released hazmat car count is at least one, drop rows with an unparseable release count, derive the accident date from year, month and day (falling back to a date column and then to January 1 of the year), and sort by date and identifier. The current snapshot contains 1,797 gxid rows and 1,756 Hwy-rail crossing rows among the 27,244 hazmat-car accidents; their overlap is not enumerated, so the exact post-exclusion count is not fixed in this recipe. If the projected request fails, fall back to GET https://data.transportation.gov/api/views/byy5-w977/rows.csv?accessType=DOWNLOAD and apply the same filters locally. Exclude hazmatcarsdamaged, hazmatreleasedcars, personsevacuated and totaldamagecost from the modelling frame.",
+    "expected_size": "About 183,000 unique train accidents for 1975-2026 (sum of annual counts observed via SoQL); 27,244 have hazmat cars and 1,935 are positive. The modeling subset is therefore ~27,000 rows at ~7% positives. Full-width CSV is estimated at 100-250 MB uncompressed; this was estimated from row count and column count, not measured.",
+    "format": "Socrata tabular dataset (JSON and CSV), one row per unique train accident, tabular with ~100 fields mirroring Form FRA 6180.54 blocks; no account or API key required.",
+    "source_examples": "Observed record: accidenttype 'Derailment', tracktype 'Main', trackclass '1', trainspeed '7', equipmenttype 'Freight Train', weathercondition 'Clear', hazmatcars '0', hazmatreleasedcars '0', totaldamagecost '20331'. Documented field descriptions in the Socrata metadata cite the form block, e.g. reporting railroad code '[Block #1a on Form 6180.54]'. SoQL checks used: hazmatcars!='0' returns 27,244; hazmatcars!='0' AND hazmatreleasedcars!='0' returns 1,935."
+  },
+  "dataset_id": "fra-form54-hazmat-release",
+  "evidence": [
+    {
+      "claim": "Form 54 covers reportable rail equipment accidents and is the FRA reporting instrument for them.",
+      "quote": "must be reported by railroads to the FRA on Form FRA 6180.54 - Rail Equipment Accident/Incident",
+      "url": "https://catalog.data.gov/dataset/railroad-equipment-accident-incident-source-data-form-54"
+    },
+    {
+      "claim": "The subset used here is unique train accidents excluding grade crossings, and the publisher designates the data public domain.",
+      "quote": "Public Domain U.S. Government",
+      "url": "https://data.transportation.gov/Railroads/Rail-Equipment-Accident-Incident-Data-Form-54-Subs/byy5-w977"
+    },
+    {
+      "claim": "Socrata metadata records a U.S. Government works license and documents columns as Form 6180.54 blocks.",
+      "quote": "Code of the reporting railroad [Block #1a on Form 6180.54]",
+      "url": "https://data.transportation.gov/api/views/85tf-25kj.json"
+    },
+    {
+      "claim": "Observed record shows the hazmat and speed fields plus outcome fields that must be excluded from inputs.",
+      "quote": "\"hazmatcars\":\"0\",\"hazmatcarsdamaged\":\"0\",\"hazmatreleasedcars\":\"0\"",
+      "url": "https://data.transportation.gov/resource/85tf-25kj.json?$limit=1"
+    },
+    {
+      "claim": "27,244 unique train accidents involved at least one hazmat car.",
+      "quote": "[{\"count\":\"27244\"}]",
+      "url": "https://data.transportation.gov/resource/byy5-w977.json?$select=count(*)&$where=hazmatcars!='0'"
+    },
+    {
+      "claim": "1,935 of those accidents produced a release, a 7.1% base rate.",
+      "quote": "[{\"count\":\"1935\"}]",
+      "url": "https://data.transportation.gov/resource/byy5-w977.json?$select=count(*)&$where=hazmatcars!='0'%20AND%20hazmatreleasedcars!='0'"
+    },
+    {
+      "claim": "Annual accident counts run 1975-2026, enabling fixed chronological splits; 2026 is partial.",
+      "quote": "{\"year\":\"2025\",\"count\":\"1845\"}",
+      "url": "https://data.transportation.gov/resource/byy5-w977.json?$select=year,count(*)&$group=year&$order=year"
+    }
+  ],
+  "limitations": [
+    "U.S. freight rail plant is largely privately owned; this is regulated transport infrastructure rather than publicly owned infrastructure, so the fit to a 'public infrastructure' focus is by regulation and community/environmental exposure, not ownership.",
+    "The label comes from the same retrospective form as the features, so the claim that inputs were available at the decision instant is an inference about scene knowledge, not a documented field-level timestamp; the FRA data has no separate initial-versus-final report structure to prove it.",
+    "Base rate falls sharply over time (about 9-10% for 1975-1999 versus about 3% for 2013+), so the fixed 2013+ holdout has only about 185 positives and metrics there will be noisy.",
+    "Reportable damage thresholds change across years, which changes which accidents enter the population at all and induces level shifts that a chronological split will partly absorb as drift.",
+    "Consist and hazmat fields are self-reported by railroads and subject to revision for up to five years, so recent years (including the partial 2026) are unsettled.",
+    "The extract already excludes grade-crossing collisions, so results do not generalize to the grade-crossing population, and the 'unique train accidents' subset must not be re-joined to per-report rows without deduplication.",
+    "The public-domain designation is a U.S. Government works basis (17 U.S.C. 105) for the federal compilation; it is not a worldwide dedication, and any third-party content quoted inside railroad narratives is not covered by that designation and should not be redistributed.",
+    "Excluding post-outcome quantities (cars derailed, damage, casualties, cause) removes the strongest correlates of release, so the task is deliberately hard and low-ceiling."
+  ],
+  "reason": "FRA's Form 54 'unique train accidents' extract is a directly downloadable, per-accident Socrata table with a published data dictionary, and FRA/DOT designates it 'Public Domain U.S. Government' (Socrata license id USGOV_WORKS). Restricting to accidents whose consist included at least one hazmat car yields a clean, independently repeated event population: 27,244 accidents and 1,935 releases (7.1%) observed by SoQL, with ~183,000 total accidents back to 1975 for chronological splits. The label (hazmatreleasedcars >= 1) is not a copy of any input, and it is measurable from the same record rather than requiring a second agency join. Main caveats, stated below: U.S. freight rail plant is privately owned though federally regulated, and the release field is recorded retrospectively on the same form, so 'available at the decision instant' is a scene-knowledge inference rather than a documented field timestamp.",
+  "source": {
+    "attribution": "No attribution is required for this U.S. Government work; recommended credit: U.S. Department of Transportation, Federal Railroad Administration, Rail Equipment Accident/Incident Data (Form FRA 6180.54), data.transportation.gov",
+    "citation": "",
+    "documentation_url": "https://datahub.transportation.gov/api/views/byy5-w977/files/ac84a1c8-56d4-4a21-85c2-3a33080ab720?download=true&filename=Form54_Data_Dictionary.xlsx",
+    "license": "Public Domain U.S. Government (Socrata license identifier USGOV_WORKS)",
+    "publisher": "U.S. Department of Transportation, Federal Railroad Administration (FRA), Office of Railroad Safety; published on data.transportation.gov",
+    "redistribution": true,
+    "terms_excerpt": "Public Domain U.S. Government",
+    "terms_url": "https://data.transportation.gov/Railroads/Rail-Equipment-Accident-Incident-Data-Form-54-Subs/byy5-w977",
+    "urls": [
+      "https://data.transportation.gov/api/views/byy5-w977/rows.csv?accessType=DOWNLOAD"
+    ]
+  },
+  "task": {
+    "decision_user": "Railroad dispatcher/chief dispatcher, train crew, and local emergency management or hazmat responders sizing the response (isolation perimeter, hazmat team, waterway protection) at first notification of the accident.",
+    "features": [
+      {
+        "availability": "Recorded on Form 6180.54 as the speed at the time of the accident; assumed known to the crew and dispatcher at first notification. No field-level timestamp proves it was recorded before the release outcome.",
+        "evidence_url": "https://data.transportation.gov/resource/byy5-w977.json?$limit=1",
+        "meaning": "Recorded or estimated train speed at the time of the accident, in miles per hour.",
+        "name": "trainspeed",
+        "status": "assumed"
+      },
+      {
+        "availability": "Equipment type of the involved train as recorded on the form; assumed observable from the consist at first notification.",
+        "evidence_url": "https://data.transportation.gov/resource/byy5-w977.json?$limit=1",
+        "meaning": "Equipment type involved (freight train, passenger, yard movement and similar).",
+        "name": "equipmenttype",
+        "status": "assumed"
+      },
+      {
+        "availability": "Count of cars carrying regulated hazardous materials from the train documents; also the frozen population filter. Assumed available from the consist and waybills at notification.",
+        "evidence_url": "https://data.transportation.gov/resource/byy5-w977.json?$limit=1",
+        "meaning": "Number of cars in the consist carrying regulated hazardous materials; also the frozen population filter.",
+        "name": "hazmatcars",
+        "status": "assumed"
+      },
+      {
+        "availability": "Loaded freight car count from the consist documents; assumed available at notification.",
+        "evidence_url": "https://data.transportation.gov/resource/byy5-w977.json?$limit=1",
+        "meaning": "Number of loaded freight cars in the consist.",
+        "name": "loadedfreightcars",
+        "status": "assumed"
+      },
+      {
+        "availability": "Empty freight car count from the consist documents; assumed available at notification.",
+        "evidence_url": "https://data.transportation.gov/resource/byy5-w977.json?$limit=1",
+        "meaning": "Number of empty freight cars in the consist.",
+        "name": "emptyfreightcars",
+        "status": "assumed"
+      },
+      {
+        "availability": "Gross tonnage of the train from the train documents; assumed available at notification.",
+        "evidence_url": "https://data.transportation.gov/resource/byy5-w977.json?$limit=1",
+        "meaning": "Gross tonnage of the train.",
+        "name": "grosstonnage",
+        "status": "assumed"
+      },
+      {
+        "availability": "Track type at the accident point (main, siding, yard, industry); observable at the scene.",
+        "evidence_url": "https://data.transportation.gov/resource/byy5-w977.json?$limit=1",
+        "meaning": "Track type at the accident point (main, siding, yard, industry).",
+        "name": "tracktype",
+        "status": "assumed"
+      },
+      {
+        "availability": "FRA track class code from the railroad track charts, kept as a code rather than forced numeric because the code set includes non-numeric entries; assumed known from track records at notification.",
+        "evidence_url": "https://data.transportation.gov/resource/byy5-w977.json?$limit=1",
+        "meaning": "FRA track class code from the railroad track charts, kept as a code because the code set includes non-numeric entries.",
+        "name": "trackclass",
+        "status": "assumed"
+      },
+      {
+        "availability": "Weather condition recorded on the form; observable at the scene.",
+        "evidence_url": "https://data.transportation.gov/resource/byy5-w977.json?$limit=1",
+        "meaning": "Weather condition at the time (clear, rain, snow, fog and similar).",
+        "name": "weathercondition",
+        "status": "assumed"
+      },
+      {
+        "availability": "Visibility code recorded on the form; observable at the scene.",
+        "evidence_url": "https://data.transportation.gov/resource/byy5-w977.json?$limit=1",
+        "meaning": "Visibility code such as daylight versus darkness.",
+        "name": "visibility",
+        "status": "assumed"
+      },
+      {
+        "availability": "Documented ambient temperature field recorded on Form 54 and observable at the scene. In the current snapshot every population row carries a value and none is zero, correcting the earlier frequently-missing claim; any future missing values remain missing rather than being filled with zero.",
+        "evidence_url": "https://data.transportation.gov/resource/byy5-w977.json?$limit=1",
+        "meaning": "Ambient temperature at the accident scene in degrees Fahrenheit; missing values remain missing and are never filled with zero.",
+        "name": "temperature",
+        "status": "assumed"
+      },
+      {
+        "availability": "Nature of the event as it presents on scene at first notification; also used to exclude Hwy-rail crossing and RR grade crossing records from the population. Observed in the current snapshot.",
+        "evidence_url": "https://data.transportation.gov/resource/byy5-w977.json?$limit=1",
+        "meaning": "Nature of the event as it presents on scene (derailment, collision, other).",
+        "name": "accidenttype",
+        "status": "assumed"
+      },
+      {
+        "availability": "Published Form 54 Reporting Railroad Class field with values such as Class I, Class II, Class III, Not Assigned and Unassigned; a pre-event carrier attribute known at notification. The current population shows non-null coverage for every shipped row.",
+        "evidence_url": "https://data.transportation.gov/api/views/byy5-w977.json",
+        "meaning": "Reporting railroad class as published by FRA (Class I, Class II, Class III, Not Assigned, Unassigned), a carrier class identity attribute; not a fallback to the reporting railroad code.",
+        "name": "reporting_railroad_class",
+        "status": "verified"
+      },
+      {
+        "availability": "State of the accident from the form location block; present in the snapshot and known at notification.",
+        "evidence_url": "https://data.transportation.gov/resource/byy5-w977.json?$limit=1",
+        "meaning": "State in which the accident occurred.",
+        "name": "stateabbr",
+        "status": "assumed"
+      }
+    ],
+    "outcome_horizon": "Realized within the accident sequence itself and documented when the railroad files Form 6180.54 (reports are filed after the accident, and railroads may revise for up to five years); this is a same-event outcome, not a multi-year forward window.",
+    "population": "Every unique train accident in the FRA Form 54 unique-train-accident extract, covering accident years 1975 through 2026, whose consist included at least one car carrying regulated hazardous materials (hazmat car count of at least 1). The publisher view title claims no grade crossings, but the current snapshot still contains a crossing block, so the builder explicitly excludes records with a non-empty gxid or accidenttype Hwy-rail crossing or RR grade crossing before labeling. Accidents with an unrecorded release count are dropped rather than labeled negative.",
+    "prediction_time": "At first notification of the accident, when the crew and dispatcher report it and before Form FRA 6180.54 is prepared. Only circumstances a responder can observe or obtain on scene are shipped: consist counts and tonnage, speed, track type and class, weather, visibility, temperature, the apparent accident type, carrier class and state.",
+    "question": "At the moment a U.S. train accident involving hazardous-material cars is first reported, will at least one of those cars release hazardous material?",
+    "simple_references": "Majority-class control: predict no release, correct about 92 to 93 percent overall and about 97 percent in the 2013 onward holdout, so any useful model must beat that. Persistence does not apply because the unit is a unique accident with no repeated entity and no prior outcome to carry forward. Calendar control: accident year, since reporting thresholds and traffic changed substantially and the release rate falls from roughly 9 percent before 2000 to roughly 3 percent after 2012. Identity controls: reporting railroad class and state fixed effects.",
+    "split_policy": "Fixed chronological boundaries on accident year, one row per accident, no random shuffling: train = accidents through 1999-12-31 (~13,100 hazmat-car accidents, ~1,400 releases); eval = 2000-01-01 to 2012-12-31 (~8,000 accidents, ~330 releases); holdout = 2013-01-01 onward (~5,900 accidents, ~185 releases; 2026 is partial). No embargo is applied because the label is realized inside the same accident record rather than in a forward window, so there is no label-overlap span to purge; the design also has no lag or rolling-history features, and each accident appears exactly once, so no later row can encode an earlier row's label.",
+    "target": "hazmatreleasedcars >= 1, i.e. at least one railcar released hazardous material, among accidents whose train consist included at least one car carrying regulated hazardous materials (hazmatcars >= 1)",
+    "usefulness": "A responder at the scene knows the consist, speed, track, weather and location but not whether tank cars will breach, so the target is not a renamed input: it asks how observable circumstances map onto actual release. The task separates the large majority of hazmat-bearing accidents that do not release from the minority that do, which is precisely the distinction that drives isolation distance, hazmat-team dispatch and waterway protection, and it is materially different from predicting that an accident happened at all."
+  },
+  "title": "Will a hazmat-bearing U.S. train accident release hazardous material? Forward release prediction at first notification from Form FRA 6180.54 scene circumstances",
+  "verdict": "ready"
+}

@@ -1,0 +1,180 @@
+{
+  "checks": [
+    {
+      "check": "publisher Form 54 extract obtained through fetch and hashed",
+      "observed": "source member fra_form54_hazmat_filtered.csv with 5129737 bytes and sha256 1c0821d1a6bdf8eb; projected subset export served by the publisher query engine with a hazmat car count filter; grade-crossing records are excluded locally",
+      "expected": "the published Form 54 unique-train-accident extract from data.transportation.gov, downloaded through the platform fetch helper",
+      "passed": true
+    },
+    {
+      "check": "declared task fields resolve to publisher columns in the selected extract",
+      "observed": "resolved 14 of 14 declared features; release count label source column hazmatreleasedcars; accident year column year; grade-crossing identifier column gxid",
+      "expected": "every declared feature, the release count label source, the accident year and the grade-crossing identifier present in the published columns",
+      "passed": true
+    },
+    {
+      "check": "published title claim of no grade crossings does not hold in the source block and crossing records are excluded",
+      "observed": "1817 hazmat accidents with a non-empty gxid or a crossing accident type were excluded; 1796 carried a non-empty gxid and 46 of those excluded rows were positive before exclusion; 45 gxid positives and 38 crossing-type positives overlap; shipped rows still carrying gxid 0 and shipped rows still typed crossing 0",
+      "expected": "the source snapshot contains a crossing block even though the view title says not at grade crossings; no shipped row may carry a non-empty gxid or the accident types Hwy-rail crossing or RR grade crossing",
+      "passed": true
+    },
+    {
+      "check": "population holds only non-crossing accidents with at least one hazmat car inside the agreed accident years",
+      "observed": "27244 source rows scanned; 0 with a zero hazmat car count; 0 without a parseable hazmat car count; 0 hazmat accidents outside the year range; 1817 crossing records excluded; 0 dropped for an unknown release count; 0 dropped without a usable date; 25427 shipped",
+      "expected": "publisher SoQL reports 27,244 hazmat-car accidents before crossing exclusion, and the live source block carries 1,797 gxid rows and 1,756 Hwy-rail crossing rows; this build removes both kinds before labeling, so every shipped row has at least one hazmat car, an accident year from 1975 through 2026, an empty gxid and a non-crossing accident type",
+      "passed": true
+    },
+    {
+      "check": "release target derived only from the recorded hazmat release count after crossing exclusion",
+      "observed": "1889 positives and 23538 negatives across 25427 rows; base rate 0.0743",
+      "expected": "publisher SoQL reports 1,935 releases among 27,244 hazmat-car accidents before crossing exclusion; after removing the measured crossing block fewer positives remain, so the rate stays near 0.07 and is not treated as the pre-exclusion count",
+      "passed": true
+    },
+    {
+      "check": "shipped accident identifiers are unique and stable within the snapshot",
+      "observed": "identifier source composite key over reportingrailroadcode, year, accidentmonth, day, stateabbr, station, milepost, accidenttype; 25427 shipped rows and 25427 distinct identifiers",
+      "expected": "exactly one shipped row per accident identifier",
+      "passed": true
+    },
+    {
+      "check": "target column is binary with both classes present",
+      "observed": "distinct target values [0, 1]",
+      "expected": "only 0 and 1, with at least one of each",
+      "passed": true
+    },
+    {
+      "check": "shipped columns are exactly the declared identifier, time, feature and target names",
+      "observed": "shipped columns ['accident_id', 'accident_date', 'trainspeed', 'equipmenttype', 'hazmatcars', 'loadedfreightcars', 'emptyfreightcars', 'grosstonnage', 'tracktype', 'trackclass', 'weathercondition', 'visibility', 'temperature', 'accidenttype', 'reporting_railroad_class', 'stateabbr', 'hazmat_release']",
+      "expected": "['accident_id', 'accident_date', 'trainspeed', 'equipmenttype', 'hazmatcars', 'loadedfreightcars', 'emptyfreightcars', 'grosstonnage', 'tracktype', 'trackclass', 'weathercondition', 'visibility', 'temperature', 'accidenttype', 'reporting_railroad_class', 'stateabbr', 'hazmat_release']",
+      "passed": true
+    },
+    {
+      "check": "no post-outcome or label-source field is shipped as an input",
+      "observed": "overlap between shipped columns and excluded outcome fields is []",
+      "expected": "the excluded outcome fields stay out of the modelling frame",
+      "passed": true
+    },
+    {
+      "check": "published Reporting Railroad Class field is present and covered",
+      "observed": "25427 non-null of 25427 shipped rows with 5 distinct class values",
+      "expected": "the documented Reporting Railroad Class field is non-null for every shipped population row in the current snapshot and has at least one class value",
+      "passed": true
+    },
+    {
+      "check": "temperature coverage is recorded rather than assumed sparse",
+      "observed": "25427 non-null temperature values of 25427 shipped rows; 86 equal zero",
+      "expected": "recorded Fahrenheit temperatures are present; missing values stay missing and zero is not used as a fill",
+      "passed": true
+    },
+    {
+      "check": "declared feature coverage for trainspeed",
+      "observed": "25426 non-null of 25427 shipped rows from source column trainspeed",
+      "expected": "at least one non-null value parsed from the resolved publisher column",
+      "passed": true
+    },
+    {
+      "check": "declared feature coverage for equipmenttype",
+      "observed": "25398 non-null of 25427 shipped rows from source column equipmenttype",
+      "expected": "at least one non-null value parsed from the resolved publisher column",
+      "passed": true
+    },
+    {
+      "check": "declared feature coverage for hazmatcars",
+      "observed": "25427 non-null of 25427 shipped rows from source column hazmatcars",
+      "expected": "at least one non-null value parsed from the resolved publisher column",
+      "passed": true
+    },
+    {
+      "check": "declared feature coverage for loadedfreightcars",
+      "observed": "25427 non-null of 25427 shipped rows from source column loadedfreightcars",
+      "expected": "at least one non-null value parsed from the resolved publisher column",
+      "passed": true
+    },
+    {
+      "check": "declared feature coverage for emptyfreightcars",
+      "observed": "25427 non-null of 25427 shipped rows from source column emptyfreightcars",
+      "expected": "at least one non-null value parsed from the resolved publisher column",
+      "passed": true
+    },
+    {
+      "check": "declared feature coverage for grosstonnage",
+      "observed": "25427 non-null of 25427 shipped rows from source column grosstonnage",
+      "expected": "at least one non-null value parsed from the resolved publisher column",
+      "passed": true
+    },
+    {
+      "check": "declared feature coverage for tracktype",
+      "observed": "25312 non-null of 25427 shipped rows from source column tracktype",
+      "expected": "at least one non-null value parsed from the resolved publisher column",
+      "passed": true
+    },
+    {
+      "check": "declared feature coverage for trackclass",
+      "observed": "24791 non-null of 25427 shipped rows from source column trackclass",
+      "expected": "at least one non-null value parsed from the resolved publisher column",
+      "passed": true
+    },
+    {
+      "check": "declared feature coverage for weathercondition",
+      "observed": "25406 non-null of 25427 shipped rows from source column weathercondition",
+      "expected": "at least one non-null value parsed from the resolved publisher column",
+      "passed": true
+    },
+    {
+      "check": "declared feature coverage for visibility",
+      "observed": "25418 non-null of 25427 shipped rows from source column visibility",
+      "expected": "at least one non-null value parsed from the resolved publisher column",
+      "passed": true
+    },
+    {
+      "check": "declared feature coverage for temperature",
+      "observed": "25427 non-null of 25427 shipped rows from source column temperature",
+      "expected": "at least one non-null value parsed from the resolved publisher column",
+      "passed": true
+    },
+    {
+      "check": "declared feature coverage for accidenttype",
+      "observed": "25427 non-null of 25427 shipped rows from source column accidenttype",
+      "expected": "at least one non-null value parsed from the resolved publisher column",
+      "passed": true
+    },
+    {
+      "check": "declared feature coverage for reporting_railroad_class",
+      "observed": "25427 non-null of 25427 shipped rows from source column reporting_railroad_class",
+      "expected": "at least one non-null value parsed from the resolved publisher column",
+      "passed": true
+    },
+    {
+      "check": "declared feature coverage for stateabbr",
+      "observed": "25427 non-null of 25427 shipped rows from source column stateabbr",
+      "expected": "at least one non-null value parsed from the resolved publisher column",
+      "passed": true
+    },
+    {
+      "check": "frozen chronological windows hold disjoint accident dates",
+      "observed": "train 12541 rows (1975-01-01 through 1999-12-31); eval 7697 rows (2000-01-02 through 2012-12-31); holdout 5189 rows (2013-01-02 through 2026-08-31)",
+      "expected": "train before 2000-01-01, eval in the half-open window from 2000-01-01 to 2013-01-01, holdout from 2013-01-01 onward, every window non-empty",
+      "passed": true
+    },
+    {
+      "check": "accident dates carry day precision for the split windows",
+      "observed": "25427 rows with a composed or parsed day-level date; 0 dropped without any usable date; 0 unresolved after the January 1 fallback; 25427 shipped",
+      "expected": "every shipped row dated from the accident year, month and day (or a publisher date field), with January 1 of the accident year as the last resort",
+      "passed": true
+    },
+    {
+      "check": "hazmat car counts are whole cars rather than a rate or a tonnage",
+      "observed": "share of shipped rows with a non-integer hazmat car count 0.000000",
+      "expected": "whole-car counts from the Form 54 consist block",
+      "passed": true,
+      "kind": "unit"
+    },
+    {
+      "check": "gross tonnage is a non-negative tonnage of the whole train",
+      "observed": "0 shipped rows with a negative gross tonnage and 25427 rows with a parsed tonnage",
+      "expected": "Form 54 gross tonnage in tons, non-negative",
+      "passed": true,
+      "kind": "unit"
+    }
+  ]
+}
