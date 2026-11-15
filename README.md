@@ -15,6 +15,14 @@ configs:
     path: extract/private/holdout.csv
 ---
 
+<!-- dataset-factory:links -->
+**Dataset Factory · v-c59d614ee9c4ce97**
+
+[Dataset website](https://earino.github.io/factory-fra-form54-hazmat-release/versions/v-c59d614ee9c4ce97/) · [GitHub release](https://github.com/earino/factory-fra-form54-hazmat-release/releases/tag/v-c59d614ee9c4ce97) · [Hugging Face](https://huggingface.co/datasets/earino/factory-fra-form54-hazmat-release/tree/v-c59d614ee9c4ce97) · [Catalogue](https://earino.github.io/dataset-factory-site/)
+
+Artifact: aedd811fdb6a80fdeb6828c1ba8bc2eeb80c8446d597ba57a536adb8e384da7e
+<!-- /dataset-factory:links -->
+
 # Will a hazmat-bearing U.S. train accident release hazardous material? Forward release prediction at first notification from Form FRA 6180.54 scene circumstances
 
 At the moment a U.S. train accident involving hazardous-material cars is first reported, will at least one of those cars release hazardous material?
